@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>GuardianAI — Prompt Protection for the AI Age</title>
+<meta name="description" content="A Chrome extension that catches sensitive data before it reaches Claude or ChatGPT. Local-only. No cloud. Built for POPIA compliance."/>
+<meta property="og:title" content="GuardianAI — Prompt Protection for the AI Age"/>
+<meta property="og:description" content="Real-time detection of ID numbers, credentials, and personal data before your prompts reach the AI."/>
+<meta property="og:url" content="https://guardianai.co.za"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+
+<style>
+:root {
+  --ink:       #080c12;
+  --ink2:      #0d1320;
+  --ink3:      #131928;
+  --ink4:      #1a2235;
+  --wire:      rgba(255,255,255,0.07);
+  --wire2:     rgba(255,255,255,0.12);
+  --blue:      #2a6ef5;
+  --blue2:     #4f8fff;
+  --blue-glow: rgba(42,110,245,0.18);
+  --red:       #ef4444;
+  --red-dim:   rgba(239,68,68,0.1);
+  --amber:     #f59e0b;
+  --amber-dim: rgba(245,158,11,0.1);
+  --green:     #22c55e;
+  --green-dim: rgba(34,197,94,0.08);
+  --indigo:    #818cf8;
+  --text:      #e2e8f0;
+  --text2:     #94a3b8;
+  --text3:     #475569;
+  --serif:     'Instrument Serif', Georgia, serif;
+  --mono:      'DM Mono', 'Courier New', monospace;
+  --syne:      'Syne', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--ink);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 15px;
+  line-height: 1.6;
+  overflow-x: hidden;
+  cursor: default;
+}
+
+/* ── NOISE TEXTURE OVERLAY ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0.4;
+}
+
+/* ── GRID BACKGROUND ── */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--wire) 1px, transparent 1px),
+    linear-gradient(90deg, var(--wire) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── GLOBAL GLOW BLOB ── */
+.glow-blob {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+}
+.glow-blob--1 { width: 600px; height: 600px; background: radial-gradient(circle, rgba(42,110,245,0.12), transparent 70%); top: -200px; right: -100px; }
+.glow-blob--2 { width: 400px; height: 400px; background: radial-gradient(circle, rgba(239,68,68,0.06), transparent 70%); bottom: 200px; left: -100px; }
+
+/* ── NAV ── */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  padding: 20px 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(8,12,18,0.8);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--wire);
+}
+
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.nav-shield {
+  width: 32px; height: 36px;
+  background: linear-gradient(135deg, #1a3a6f, #0d1b2a);
+  border: 1px solid rgba(42,110,245,0.4);
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 20px rgba(42,110,245,0.2);
+}
+
+.nav-name {
+  font-family: var(--syne);
+  font-weight: 800;
+  font-size: 17px;
+  color: #fff;
+  letter-spacing: -0.02em;
+}
+
+.nav-right { display: flex; align-items: center; gap: 24px; }
+
+.nav-link {
+  font-size: 12px;
+  color: var(--text2);
+  text-decoration: none;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition: color 0.2s;
+}
+.nav-link:hover { color: var(--text); }
+
+.nav-cta {
+  font-size: 12px;
+  font-family: var(--mono);
+  padding: 8px 18px;
+  background: var(--blue);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  letter-spacing: 0.03em;
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+.nav-cta:hover { opacity: 0.85; }
+
+/* ── HERO ── */
+.hero {
+  position: relative;
+  z-index: 2;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 120px 40px 80px;
+  text-align: center;
+}
+
+.hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--blue2);
+  background: rgba(42,110,245,0.1);
+  border: 1px solid rgba(42,110,245,0.25);
+  padding: 5px 14px;
+  border-radius: 999px;
+  margin-bottom: 32px;
+  animation: fadeUp 0.6s ease both;
+}
+
+.hero-eyebrow-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--blue2);
+  box-shadow: 0 0 6px var(--blue2);
+  animation: pulse 2s ease infinite;
+}
+
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+.hero-headline {
+  font-family: var(--serif);
+  font-size: clamp(48px, 7vw, 88px);
+  line-height: 1.05;
+  color: #fff;
+  max-width: 900px;
+  margin-bottom: 24px;
+  animation: fadeUp 0.6s ease 0.1s both;
+}
+
+.hero-headline em {
+  font-style: italic;
+  color: var(--blue2);
+}
+
+.hero-sub {
+  font-size: 16px;
+  color: var(--text2);
+  max-width: 560px;
+  line-height: 1.75;
+  margin-bottom: 48px;
+  animation: fadeUp 0.6s ease 0.2s both;
+}
+
+/* ── WAITLIST FORM ── */
+.waitlist {
+  display: flex;
+  gap: 0;
+  max-width: 440px;
+  width: 100%;
+  margin-bottom: 20px;
+  animation: fadeUp 0.6s ease 0.3s both;
+  box-shadow: 0 0 40px rgba(42,110,245,0.15);
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(42,110,245,0.3);
+}
+
+.waitlist-input {
+  flex: 1;
+  background: var(--ink3);
+  border: none;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  padding: 14px 18px;
+  outline: none;
+}
+
+.waitlist-input::placeholder { color: var(--text3); }
+
+.waitlist-btn {
+  background: var(--blue);
+  color: #fff;
+  border: none;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 14px 24px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+.waitlist-btn:hover { background: #1d5cd4; }
+
+.waitlist-note {
+  font-size: 11px;
+  color: var(--text3);
+  animation: fadeUp 0.6s ease 0.4s both;
+}
+
+.waitlist-success {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--green);
+  background: var(--green-dim);
+  border: 1px solid rgba(34,197,94,0.2);
+  padding: 12px 20px;
+  border-radius: 8px;
+  max-width: 440px;
+  width: 100%;
+}
+
+/* ── PILLS ── */
+.hero-pills {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 40px;
+  animation: fadeUp 0.6s ease 0.5s both;
+}
+
+.pill {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.pill-blue  { background: rgba(42,110,245,0.1);   color: var(--blue2);  border-color: rgba(42,110,245,0.25); }
+.pill-green { background: var(--green-dim);        color: var(--green);  border-color: rgba(34,197,94,0.2); }
+
+/* ── SECTION BASE ── */
+section {
+  position: relative;
+  z-index: 2;
+  padding: 100px 40px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.section-label {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--blue2);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-label::before {
+  content: '';
+  width: 24px;
+  height: 1px;
+  background: var(--blue2);
+}
+
+.section-title {
+  font-family: var(--serif);
+  font-size: clamp(32px, 4vw, 52px);
+  color: #fff;
+  line-height: 1.15;
+  margin-bottom: 20px;
+}
+
+.section-title em { font-style: italic; color: var(--blue2); }
+
+.section-body {
+  font-size: 15px;
+  color: var(--text2);
+  line-height: 1.8;
+  max-width: 580px;
+}
+
+/* ── STORY / ORIGIN ── */
+.story {
+  border-top: 1px solid var(--wire);
+}
+
+.story-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: start;
+  margin-top: 60px;
+}
+
+.story-quote {
+  font-family: var(--serif);
+  font-size: clamp(22px, 2.5vw, 30px);
+  font-style: italic;
+  color: #fff;
+  line-height: 1.45;
+  padding-left: 24px;
+  border-left: 2px solid var(--blue);
+}
+
+.story-text {
+  font-size: 14.5px;
+  color: var(--text2);
+  line-height: 1.85;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.story-text p strong { color: var(--text); }
+
+/* ── HOW IT WORKS ── */
+.how {
+  border-top: 1px solid var(--wire);
+}
+
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 2px;
+  margin-top: 60px;
+  background: var(--wire);
+  border: 1px solid var(--wire);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.step-card {
+  background: var(--ink2);
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: background 0.2s;
+}
+
+.step-card:hover { background: var(--ink3); }
+
+.step-num {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: rgba(42,110,245,0.12);
+  border: 1px solid rgba(42,110,245,0.3);
+  color: var(--blue2);
+  font-size: 12px;
+  font-weight: 500;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+.step-title {
+  font-family: var(--syne);
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.3;
+}
+
+.step-desc {
+  font-size: 12px;
+  color: var(--text2);
+  line-height: 1.6;
+}
+
+/* ── DETECTION TYPES ── */
+.detect {
+  border-top: 1px solid var(--wire);
+}
+
+.detect-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  margin-top: 60px;
+  background: var(--wire);
+  border: 1px solid var(--wire);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.detect-card {
+  background: var(--ink2);
+  padding: 24px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  transition: background 0.2s;
+}
+
+.detect-card:hover { background: var(--ink3); }
+
+.detect-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+
+.detect-dot--high  { background: var(--red);   box-shadow: 0 0 6px var(--red); }
+.detect-dot--medium{ background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+
+.detect-type  { font-size: 13px; color: #fff; font-weight: 500; margin-bottom: 3px; }
+.detect-eg    { font-family: var(--mono); font-size: 11px; color: var(--text3); }
+.detect-level { font-size: 10px; letter-spacing: 0.05em; }
+.detect-level--high   { color: var(--red); }
+.detect-level--medium { color: var(--amber); }
+
+/* ── RISK LEVELS ── */
+.risk {
+  border-top: 1px solid var(--wire);
+}
+
+.risk-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 60px;
+}
+
+.risk-card {
+  padding: 28px;
+  border-radius: 10px;
+  border: 1px solid;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.risk-card--high   { background: var(--red-dim);   border-color: rgba(239,68,68,0.2); }
+.risk-card--medium { background: var(--amber-dim);  border-color: rgba(245,158,11,0.2); }
+.risk-card--low    { background: var(--green-dim);  border-color: rgba(34,197,94,0.15); }
+
+.risk-badge {
+  font-family: var(--syne);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 3px 10px;
+  border-radius: 4px;
+  display: inline-block;
+  width: fit-content;
+}
+
+.risk-badge--high   { background: rgba(239,68,68,0.2);   color: #f87171; }
+.risk-badge--medium { background: rgba(245,158,11,0.2);   color: #fbbf24; }
+.risk-badge--low    { background: rgba(34,197,94,0.12);   color: #4ade80; }
+
+.risk-title { font-family: var(--syne); font-size: 16px; font-weight: 700; color: #fff; }
+.risk-desc  { font-size: 13px; color: var(--text2); line-height: 1.65; }
+
+/* ── PRIVACY ── */
+.privacy {
+  border-top: 1px solid var(--wire);
+}
+
+.privacy-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  margin-top: 60px;
+  background: var(--wire);
+  border: 1px solid var(--wire);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.privacy-card {
+  background: var(--ink2);
+  padding: 28px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: background 0.2s;
+}
+
+.privacy-card:hover { background: var(--ink3); }
+.privacy-icon  { font-size: 24px; }
+.privacy-title { font-family: var(--syne); font-size: 14px; font-weight: 700; color: #fff; }
+.privacy-desc  { font-size: 12.5px; color: var(--text2); line-height: 1.6; }
+
+/* ── POPIA ── */
+.popia {
+  border-top: 1px solid var(--wire);
+}
+
+.popia-inner {
+  margin-top: 60px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  align-items: center;
+}
+
+.popia-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.popia-section-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 18px;
+  background: var(--ink3);
+  border: 1px solid var(--wire2);
+  border-radius: 8px;
+  transition: border-color 0.2s;
+}
+
+.popia-section-row:hover { border-color: rgba(129,140,248,0.3); }
+
+.popia-tag {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(129,140,248,0.15);
+  color: var(--indigo);
+  border: 1px solid rgba(129,140,248,0.25);
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.popia-section-title { font-size: 13px; color: #fff; font-weight: 500; margin-bottom: 3px; }
+.popia-section-desc  { font-size: 12px; color: var(--text2); line-height: 1.55; }
+
+.popia-note {
+  margin-top: 16px;
+  font-size: 11.5px;
+  color: var(--text3);
+  line-height: 1.6;
+  font-style: italic;
+}
+
+/* ── PRICING ── */
+.pricing {
+  border-top: 1px solid var(--wire);
+  text-align: center;
+}
+
+.pricing-card {
+  margin: 60px auto 0;
+  max-width: 440px;
+  background: var(--ink2);
+  border: 1px solid rgba(42,110,245,0.3);
+  border-radius: 16px;
+  padding: 40px;
+  box-shadow: 0 0 60px rgba(42,110,245,0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.pricing-card::before {
+  content: '';
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 180px; height: 180px;
+  background: radial-gradient(circle, rgba(42,110,245,0.12), transparent 70%);
+  pointer-events: none;
+}
+
+.pricing-badge {
+  display: inline-block;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--green);
+  background: var(--green-dim);
+  border: 1px solid rgba(34,197,94,0.2);
+  padding: 3px 10px;
+  border-radius: 999px;
+  margin-bottom: 20px;
+}
+
+.pricing-price {
+  font-family: var(--serif);
+  font-size: 64px;
+  color: #fff;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.pricing-period {
+  font-size: 13px;
+  color: var(--text2);
+  margin-bottom: 28px;
+}
+
+.pricing-features {
+  list-style: none;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.pricing-features li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text2);
+}
+
+.pricing-features li::before {
+  content: '✓';
+  color: var(--green);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.pricing-cta {
+  width: 100%;
+  padding: 13px;
+  background: var(--blue);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.pricing-cta:hover { opacity: 0.85; }
+
+.pricing-sub {
+  margin-top: 14px;
+  font-size: 11px;
+  color: var(--text3);
+}
+
+/* ── WAITLIST SECTION ── */
+.waitlist-section {
+  border-top: 1px solid var(--wire);
+  text-align: center;
+}
+
+.waitlist-section .section-label { justify-content: center; }
+.waitlist-section .section-label::before { display: none; }
+
+.waitlist-section .section-body { margin: 0 auto 40px; }
+
+.waitlist-form-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ── FOOTER ── */
+footer {
+  position: relative;
+  z-index: 2;
+  border-top: 1px solid var(--wire);
+  padding: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.footer-name {
+  font-family: var(--syne);
+  font-weight: 800;
+  font-size: 15px;
+  color: #fff;
+}
+
+.footer-tagline {
+  font-size: 11px;
+  color: var(--text3);
+}
+
+.footer-links {
+  display: flex;
+  gap: 24px;
+}
+
+.footer-link {
+  font-size: 12px;
+  color: var(--text3);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.footer-link:hover { color: var(--text2); }
+
+.footer-legal {
+  font-size: 11px;
+  color: var(--text3);
+  text-align: right;
+}
+
+/* ── RISK+MOCKUP GRID ── */
+.risk-mockup-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  align-items: start;
+  margin-top: 60px;
+}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
+/* ── MOCKUP BANNER ── */
+.mockup-wrap {
+  margin-top: 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mockup-banner {
+  background: #7f1d1d;
+  border: 1px solid #ef4444;
+  border-radius: 10px;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.mockup-banner__icon { font-size: 18px; }
+.mockup-banner__body { flex: 1; }
+.mockup-banner__title { color: #fef2f2; font-weight: 500; }
+.mockup-banner__sub   { color: rgba(254,242,242,0.65); font-size: 11.5px; margin-top: 2px; }
+.mockup-banner__btn   { background: #991b1b; color: #fef2f2; border-radius: 6px; padding: 6px 14px; font-size: 12px; cursor: default; white-space: nowrap; }
+
+.mockup-modal {
+  background: var(--ink3);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.mockup-modal__header { display: flex; align-items: center; gap: 8px; }
+.mockup-modal__title  { font-size: 14px; color: #f9fafb; font-weight: 500; }
+
+.mockup-modal__detect {
+  background: rgba(0,0,0,0.3);
+  border-radius: 6px;
+  padding: 10px 14px;
+}
+
+.mockup-modal__type   { font-size: 12px; color: #fbbf24; margin-bottom: 6px; font-weight: 500; }
+.mockup-modal__chips  { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.chip {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--text3);
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--wire2);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.mockup-modal__explainer {
+  font-size: 11.5px;
+  color: var(--text2);
+  padding: 8px 0 0;
+  border-top: 1px dashed var(--wire2);
+  line-height: 1.55;
+}
+
+.mockup-modal__btns { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.mbtn {
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: default;
+  white-space: nowrap;
+}
+
+.mbtn--green  { background: #065f46; color: #d1fae5; }
+.mbtn--blue   { background: rgba(42,110,245,0.2); color: var(--blue2); border: 1px solid rgba(42,110,245,0.3); }
+.mbtn--gray   { background: rgba(255,255,255,0.06); color: var(--text2); }
+.mbtn--indigo { background: rgba(129,140,248,0.12); color: var(--indigo); border: 1px solid rgba(129,140,248,0.25); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+  nav { padding: 16px 20px; }
+  .nav-right .nav-link { display: none; }
+  section { padding: 70px 20px; }
+  .steps-grid { grid-template-columns: 1fr 1fr; }
+  .detect-grid { grid-template-columns: 1fr 1fr; }
+  .risk-grid { grid-template-columns: 1fr; }
+  .privacy-grid { grid-template-columns: 1fr 1fr; }
+  .story-grid { grid-template-columns: 1fr; gap: 40px; }
+  .popia-inner { grid-template-columns: 1fr; }
+  /* Risk + mockup side-by-side collapses to single column */
+  .risk-mockup-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
+  .mockup-wrap { margin-top: 0; }
+  footer { flex-direction: column; gap: 20px; text-align: center; }
+  .footer-links { justify-content: center; }
+  .footer-legal { text-align: center; }
+}
+
+@media (max-width: 600px) {
+  nav { padding: 14px 16px; }
+  .hero { padding: 100px 20px 60px; }
+  .hero-headline { font-size: 34px; }
+  .hero-sub { font-size: 14px; }
+  .hero-eyebrow { font-size: 10px; }
+  section { padding: 60px 16px; }
+
+  /* Grids collapse to 1 column */
+  .steps-grid { grid-template-columns: 1fr; }
+  .detect-grid { grid-template-columns: 1fr; }
+  .privacy-grid { grid-template-columns: 1fr; }
+  .risk-mockup-grid { grid-template-columns: 1fr !important; gap: 32px !important; }
+
+  /* Waitlist form stacks */
+  .waitlist { flex-direction: column; border-radius: 8px; box-shadow: none; }
+  .waitlist-input { border-radius: 8px 8px 0 0; padding: 14px 16px; }
+  .waitlist-btn { border-radius: 0 0 8px 8px; padding: 14px 16px; }
+
+  /* Mockup banner — wrap content on small screens */
+  .mockup-banner { flex-wrap: wrap; gap: 8px; padding: 12px 14px; }
+  .mockup-banner__btn { width: 100%; text-align: center; padding: 8px; border-radius: 6px; }
+
+  /* Mockup modal buttons wrap cleanly */
+  .mockup-modal__btns { gap: 6px; }
+  .mbtn { font-size: 10.5px; padding: 5px 10px; }
+
+  /* Mockup chips wrap */
+  .mockup-modal__chips { gap: 4px; }
+  .chip { font-size: 10px; }
+
+  /* Story */
+  .story-quote { font-size: 20px; padding-left: 16px; }
+  .story-text { font-size: 13.5px; }
+
+  /* POPIA */
+  .popia-section-row { padding: 12px 14px; gap: 10px; }
+  .popia-tag { font-size: 10px; }
+
+  /* Pricing */
+  .pricing-card { padding: 28px 20px; }
+  .pricing-price { font-size: 52px; }
+
+  /* Risk cards */
+  .risk-card { padding: 20px; }
+
+  /* Step cards */
+  .step-card { padding: 20px 18px; }
+
+  /* Detect cards */
+  .detect-card { padding: 18px; }
+
+  /* Privacy cards */
+  .privacy-card { padding: 20px 18px; }
+
+  /* Section labels and titles */
+  .section-title { font-size: 28px; }
+
+  /* Footer */
+  footer { padding: 28px 16px; }
+  .footer-links { flex-wrap: wrap; gap: 14px; justify-content: center; }
+}
+</style>
+</head>
+<body>
+
+<div class="glow-blob glow-blob--1"></div>
+<div class="glow-blob glow-blob--2"></div>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-brand" href="#">
+    <div class="nav-shield">
+      <svg width="16" height="18" viewBox="0 0 18 20" fill="none">
+        <path d="M9 1L1 4.5V10C1 14.418 4.582 18.41 9 19C13.418 18.41 17 14.418 17 10V4.5L9 1Z" stroke="#4f8fff" stroke-width="1.5" stroke-linejoin="round"/>
+        <path d="M6 10L8 12L12 8" stroke="#4f8fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <span class="nav-name">GuardianAI</span>
+  </a>
+  <div class="nav-right">
+    <a href="#how" class="nav-link">How it works</a>
+    <a href="#detect" class="nav-link">What it detects</a>
+    <a href="#popia" class="nav-link">POPIA</a>
+    <a href="#waitlist" class="nav-cta">Join waitlist</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-eyebrow">
+    <span class="hero-eyebrow-dot"></span>
+    Coming soon — join the waitlist
+  </div>
+
+  <h1 class="hero-headline">
+    Stop sensitive data<br/>
+    <em>before it reaches the AI.</em>
+  </h1>
+
+  <p class="hero-sub">
+    A Chrome extension that scans every prompt you type into Claude and ChatGPT in real time. The moment it spots something sensitive, it stops you — locally, privately, with zero data leaving your machine.
+  </p>
+
+  <form class="waitlist" id="hero-form" onsubmit="handleWaitlist(event, 'hero')">
+    <input class="waitlist-input" type="email" placeholder="your@email.com" required/>
+    <button class="waitlist-btn" type="submit">Notify me →</button>
+  </form>
+
+  <div class="waitlist-success" id="hero-success">
+    <span>✓</span>
+    <span>You're on the list. We'll notify you when GuardianAI launches.</span>
+  </div>
+
+  <p class="waitlist-note">No spam. Just a launch notification. Unsubscribe any time.</p>
+
+  <div class="hero-pills">
+    <span class="pill pill-blue">🔒 100% Local</span>
+    <span class="pill pill-blue">⚡ Real-time detection</span>
+    <span class="pill pill-green">✓ No cloud. No login. No prompt storage.</span>
+    <span class="pill pill-blue">🇿🇦 POPIA-aware</span>
+    <span class="pill pill-green">Free during beta</span>
+  </div>
+</div>
+
+<!-- ============================================================
+  TODO — FOUNDER STORY REWORK (Jon)
+  
+  Current copy is placeholder. Rewrite this section to focus on:
+
+  1. THE REAL ORIGIN — building AI usage policies
+     - You were working on AI governance / usage policies
+     - In that process you identified a gap: there was no lightweight
+       tool to help individuals catch sensitive data BEFORE it left
+       their machine and reached the AI
+     - That's what kicked off GuardianAI
+
+  2. THE CONVERSATION — weave this in
+     - A startup working in the AI compliance and governance space
+       reached out for advice
+     - Even they were wrestling with the same gap: what actually
+       prevents sensitive data reaching the AI in the moment
+     - That conversation validated the problem at a higher level —
+       if compliance-focused people are feeling it, everyone is
+     - It pulled you back to the build and got you going again
+
+  APPROVED PARA 3 DRAFT:
+     "Then a startup reached out — one actively working in the AI 
+     compliance and governance space. If anyone was going to have 
+     this covered, it was them. But even they were wrestling with 
+     the same gap: what actually prevents sensitive data from 
+     reaching the AI in the first place? Not policy. Not training. 
+     Something that works in the moment, before the prompt is sent. 
+     That conversation landed differently. It wasn't a gap born from 
+     ignorance — it was a gap that even the most thoughtful teams in 
+     the space were still trying to solve. And that told me everything."
+
+  Tone: personal, honest, founder-voice. No corporate speak.
+  Keep the pull-quote on the left and the body paragraphs on the right.
+  The quote should be the most resonant line from the story.
+  
+  Suggested structure:
+    Quote  → the line that captures the moment you knew this mattered
+    Para 1 → building AI policies, finding the gap
+    Para 2 → what people share without realising (the real risk)
+    Para 3 → the conversation that reignited the build
+    Para 4 → what GuardianAI is and why you built it
+============================================================ -->
+<!-- STORY / ORIGIN -->
+<section class="story reveal" id="story">
+  <div class="section-label">The origin</div>
+  <div class="story-grid">
+    <div class="story-quote">
+      "The policy was solid. But I kept coming back to the same question — will people actually follow it, or will they paste the wrong thing without even realising?"
+    </div>
+    <div class="story-text">
+      <p>It started at work. We were building an AI usage policy — the kind that sets out what staff can and can't share with AI tools. The research was thorough, the intentions were right. But somewhere in the process, a different question started nagging at me. Policies get written. Policies get circulated. And then people get busy, and they paste whatever they need to paste to get the job done. Would they read it? Would they remember it in the moment? And if they didn't — <strong>what was actually stopping sensitive data, internal IP, or personal information from quietly ending up in a prompt?</strong></p>
+      <p>The more I looked at it, the clearer the gap became. It wasn't a question of bad intent. It was a question of awareness. A developer pulls a connection string from a config file and drops it into Claude to debug something. A director shares a client name and some financials to get a summary written faster. An admin pastes an ID number to check a format. None of them are being careless — they're being human. The policy doesn't help in that moment. Nothing does.</p>
+      <p>Then a developer reached out — someone building a compliance and governance platform as a personal project, deep in the same problem space. If anyone was going to have this covered, it was them. But even they were wrestling with the same gap: what actually prevents sensitive data from reaching the AI in the first place? Not policy. Not training. Something that works in the moment, before the prompt is sent. That conversation landed differently. It wasn't a gap born from ignorance — it was a gap that even the most thoughtful people in the space were still trying to solve. And that told me everything.</p>
+      <p>What I kept hearing — from new AI users, from developers, from directors and admins — was fear. Not fear of AI itself, but fear of the unknown boundary. What's safe to share? What isn't? Where does my data go? That uncertainty creates distance between people and tools that could genuinely help them. <strong>GuardianAI exists to close that gap.</strong> Not with another policy. Not with another training session. With something that works quietly in the background, catches what you might miss, and builds the trust between users and AI that doesn't quite exist yet.</p>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how reveal" id="how">
+  <div class="section-label">How it works</div>
+  <h2 class="section-title">Five steps.<br/><em>Zero data leaves your browser.</em></h2>
+  <div class="steps-grid">
+    <div class="step-card">
+      <div class="step-num">1</div>
+      <div class="step-title">You type a prompt</div>
+      <div class="step-desc">GuardianAI watches every keystroke and paste event in real time inside Claude and ChatGPT.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">2</div>
+      <div class="step-title">Local scan fires</div>
+      <div class="step-desc">After a brief pause, the detection engine runs — 9 pattern types plus your custom keywords — entirely inside your browser.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">3</div>
+      <div class="step-title">Risk assigned</div>
+      <div class="step-desc">HIGH blocks submission instantly. MEDIUM shows a warning modal. LOW is completely silent. NONE — you never know it ran.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">4</div>
+      <div class="step-title">You decide</div>
+      <div class="step-desc">Replace sensitive values in place, send anyway, or ignore and finish typing before scanning again.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">5</div>
+      <div class="step-title">Event logged locally</div>
+      <div class="step-desc">Timestamp, site, risk level, and action stored in your browser only. Export as CSV. No prompt text ever recorded.</div>
+    </div>
+  </div>
+</section>
+
+<!-- DETECTION TYPES -->
+<section class="detect reveal" id="detect">
+  <div class="section-label">Detection</div>
+  <h2 class="section-title">What GuardianAI<br/><em>catches before you send.</em></h2>
+  <div class="detect-grid">
+    <div class="detect-card">
+      <div class="detect-dot detect-dot--high"></div>
+      <div>
+        <div class="detect-type">SA ID Numbers</div>
+        <div class="detect-eg">8001015009087</div>
+        <div class="detect-level detect-level--high">HIGH · §26 POPIA</div>
+      </div>
+    </div>
+    <div class="detect-card">
+      <div class="detect-dot detect-dot--high"></div>
+      <div>
+        <div class="detect-type">AWS Access Keys</div>
+        <div class="detect-eg">AKIA···EXAMPLE</div>
+        <div class="detect-level detect-level--high">HIGH · §19 POPIA</div>
+      </div>
+    </div>
+    <div class="detect-card">
+      <div class="detect-dot detect-dot--high"></div>
+      <div>
+        <div class="detect-type">JWT Tokens</div>
+        <div class="detect-eg">eyJhbGci···</div>
+        <div class="detect-level detect-level--high">HIGH · §19 POPIA</div>
+      </div>
+    </div>
+    <div class="detect-card">
+      <div class="detect-dot detect-dot--high"></div>
+      <div>
+        <div class="detect-type">Private Key Blocks</div>
+        <div class="detect-eg">-----BEGIN RSA···</div>
+        <div class="detect-level detect-level--high">HIGH · §19 POPIA</div>
+      </div>
+    </div>
+    <div class="detect-card">
+      <div class="detect-dot detect-dot--high"></div>
+      <div>
+        <div class="detect-type">Connection Strings</div>
+        <div class="detect-eg">mongodb://user:pass@···</div>
+        <div class="detect-level detect-level--high">HIGH · §19 POPIA</div>
+      </div>
+    </div>
+    <div class="detect-card">
+      <div class="detect-dot detect-dot--medium"></div>
+      <div>
+        <div class="detect-type">Email Addresses</div>
+        <div class="detect-eg">jon@company.co.za</div>
+        <div class="detect-level detect-level--medium">MEDIUM · §11 POPIA</div>
+      </div>
+    </div>
+    <div class="detect-card">
+      <div class="detect-dot detect-dot--medium"></div>
+      <div>
+        <div class="detect-type">SA Phone Numbers</div>
+        <div class="detect-eg">+27 82 123 4567</div>
+        <div class="detect-level detect-level--medium">MEDIUM · §11 POPIA</div>
+      </div>
+    </div>
+    <div class="detect-card">
+      <div class="detect-dot detect-dot--medium"></div>
+      <div>
+        <div class="detect-type">Custom Keywords</div>
+        <div class="detect-eg">CONFIDENTIAL, Project X</div>
+        <div class="detect-level detect-level--medium">MEDIUM · configurable</div>
+      </div>
+    </div>
+    <div class="detect-card">
+      <div class="detect-dot" style="background:#475569;margin-top:6px;"></div>
+      <div>
+        <div class="detect-type">Source Code</div>
+        <div class="detect-eg">function getUser() {···}</div>
+        <div class="detect-level" style="color:#475569;">LOW · silent</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- RISK LEVELS + UI MOCKUP -->
+<section class="risk reveal">
+  <div class="section-label">Warning UI</div>
+  <h2 class="section-title">Three levels.<br/><em>Always your choice.</em></h2>
+
+  <div class="risk-mockup-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:start;margin-top:60px;">
+    <div class="risk-grid" style="margin-top:0;">
+      <div class="risk-card risk-card--high">
+        <span class="risk-badge risk-badge--high">HIGH</span>
+        <div class="risk-title">Blocked</div>
+        <div class="risk-desc">Submission is stopped. A red banner appears. You cannot send until you dismiss it, review the input, or replace the sensitive values in place.</div>
+      </div>
+      <div class="risk-card risk-card--medium">
+        <span class="risk-badge risk-badge--medium">MEDIUM</span>
+        <div class="risk-title">Warning modal</div>
+        <div class="risk-desc">A modal shows you exactly what was detected, the actual values found, and a plain-English explanation of why it was flagged. You decide what happens next.</div>
+      </div>
+      <div class="risk-card risk-card--low">
+        <span class="risk-badge risk-badge--low">LOW</span>
+        <div class="risk-title">Silent</div>
+        <div class="risk-desc">Source code patterns are flagged internally but cause no interruption. You can send normally.</div>
+      </div>
+    </div>
+
+    <div class="mockup-wrap">
+      <div class="mockup-banner">
+        <span class="mockup-banner__icon">🚨</span>
+        <div class="mockup-banner__body">
+          <div class="mockup-banner__title">High-risk content detected — submission blocked</div>
+          <div class="mockup-banner__sub">SA ID number · 1 instance · §26 POPIA</div>
+        </div>
+        <div class="mockup-banner__btn">Dismiss & Review</div>
+      </div>
+      <div class="mockup-modal">
+        <div class="mockup-modal__header">
+          <span style="font-size:18px">⚠️</span>
+          <span class="mockup-modal__title">Sensitive content detected</span>
+        </div>
+        <div class="mockup-modal__detect">
+          <div class="mockup-modal__type">Email address · 3 instances · §11 Personal Information</div>
+          <div class="mockup-modal__chips">
+            <span class="chip">jon@work.co.za</span>
+            <span class="chip">sarah@company.com</span>
+            <span class="chip">+1 more</span>
+          </div>
+          <div class="mockup-modal__explainer">💡 Email addresses are personal information that could identify an individual under POPIA §11.</div>
+        </div>
+        <div class="mockup-modal__btns">
+          <span class="mbtn mbtn--green">✏️ Replace All</span>
+          <span class="mbtn mbtn--blue">Dismiss & Review</span>
+          <span class="mbtn mbtn--gray">Send Anyway</span>
+          <span class="mbtn mbtn--indigo">Ignore for now</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- POPIA -->
+<section class="popia reveal" id="popia">
+  <div class="section-label">POPIA compliance</div>
+  <h2 class="section-title">Built for<br/><em>South African users.</em></h2>
+  <div class="popia-inner">
+    <div class="section-body">
+      <p>Most data governance tools are built for enterprise budgets and foreign regulations. GuardianAI is different — it has POPIA baked in from the ground up, designed for South African individuals and teams who are navigating AI adoption carefully.</p>
+      <br/>
+      <p>When POPIA mode is on, every detection is tagged with the relevant section of the Act, warning language shifts to reflect your compliance obligations, and "Send Anyway" is disabled on HIGH risk events — consistent with the duty of care required by the legislation.</p>
+      <div class="popia-note">POPIA mode helps identify potentially regulated data. It does not guarantee legal compliance. Consult your Information Officer for guidance specific to your organisation.</div>
+    </div>
+    <div class="popia-sections">
+      <div class="popia-section-row">
+        <span class="popia-tag">§11</span>
+        <div>
+          <div class="popia-section-title">Conditions for Lawful Processing</div>
+          <div class="popia-section-desc">Email addresses and phone numbers. Personal information may only be processed with consent or for a legitimate purpose.</div>
+        </div>
+      </div>
+      <div class="popia-section-row">
+        <span class="popia-tag">§19</span>
+        <div>
+          <div class="popia-section-title">Security Safeguards</div>
+          <div class="popia-section-desc">API keys, tokens, connection strings, private keys. Responsible parties must secure the integrity and confidentiality of personal information.</div>
+        </div>
+      </div>
+      <div class="popia-section-row">
+        <span class="popia-tag">§26</span>
+        <div>
+          <div class="popia-section-title">Special Personal Information</div>
+          <div class="popia-section-desc">SA ID numbers. Processing is prohibited unless specific conditions under the Act are met.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRIVACY -->
+<section class="privacy reveal">
+  <div class="section-label">Privacy by design</div>
+  <h2 class="section-title">No cloud.<br/><em>No exceptions.</em></h2>
+  <div class="privacy-grid">
+    <div class="privacy-card">
+      <div class="privacy-icon">🔒</div>
+      <div class="privacy-title">100% Local</div>
+      <div class="privacy-desc">All scanning happens inside your browser. Zero data leaves your machine at any point.</div>
+    </div>
+    <div class="privacy-card">
+      <div class="privacy-icon">🚫</div>
+      <div class="privacy-title">No Cloud</div>
+      <div class="privacy-desc">No server. No API calls. No telemetry. Verified via Chrome DevTools Network tab — zero outbound requests from the extension.</div>
+    </div>
+    <div class="privacy-card">
+      <div class="privacy-icon">📋</div>
+      <div class="privacy-title">No Prompt Storage</div>
+      <div class="privacy-desc">The audit log stores metadata only — timestamp, site, risk level, action. Never the content of your prompts.</div>
+    </div>
+    <div class="privacy-card">
+      <div class="privacy-icon">⚙️</div>
+      <div class="privacy-title">Fully Configurable</div>
+      <div class="privacy-desc">Custom keywords, detection thresholds, auto-sanitize behaviour. Your settings stay on your machine.</div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing reveal">
+  <div class="section-label" style="justify-content:center;">
+    <span style="width:0"></span>Pricing
+  </div>
+  <h2 class="section-title">Free.<br/><em>During beta.</em></h2>
+  <p class="section-body" style="margin:0 auto 0;">Every feature, no limits, no card required — while we're in beta. We'll give you plenty of notice before anything changes.</p>
+  <div class="pricing-card">
+    <span class="pricing-badge">Free during beta</span>
+    <div class="pricing-price">R0</div>
+    <div class="pricing-period">per month · no credit card required</div>
+    <ul class="pricing-features">
+      <li>All 9 detection types</li>
+      <li>POPIA mode with section tagging</li>
+      <li>Replace in place — redacts tokens directly in the input</li>
+      <li>Custom keywords + CSV policy packs</li>
+      <li>Local audit log with CSV export</li>
+      <li>Light & dark mode</li>
+      <li>Browser notifications</li>
+      <li>Works on Claude &amp; ChatGPT</li>
+    </ul>
+    <button class="pricing-cta" onclick="document.getElementById('waitlist').scrollIntoView({behavior:'smooth'})">Join the waitlist →</button>
+    <div class="pricing-sub">Free during beta. No spam. No card.</div>
+  </div>
+</section>
+
+<!-- WAITLIST -->
+<section class="waitlist-section reveal" id="waitlist">
+  <div class="section-label">Waitlist</div>
+  <h2 class="section-title">Be the first<br/><em>to know.</em></h2>
+  <p class="section-body">GuardianAI is in private pilot. Join the waitlist and we'll notify you the moment it's available on the Chrome Store.</p>
+  <div class="waitlist-form-wrap">
+    <form class="waitlist" id="bottom-form" onsubmit="handleWaitlist(event, 'bottom')">
+      <input class="waitlist-input" type="email" placeholder="your@email.com" required/>
+      <button class="waitlist-btn" type="submit">Notify me →</button>
+    </form>
+    <div class="waitlist-success" id="bottom-success">
+      <span>✓</span>
+      <span>You're on the list. We'll notify you when GuardianAI launches.</span>
+    </div>
+    <p class="waitlist-note">No spam. Just a launch notification. Unsubscribe any time.</p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-brand">
+    <div class="nav-shield" style="width:28px;height:32px;">
+      <svg width="14" height="16" viewBox="0 0 18 20" fill="none">
+        <path d="M9 1L1 4.5V10C1 14.418 4.582 18.41 9 19C13.418 18.41 17 14.418 17 10V4.5L9 1Z" stroke="#4f8fff" stroke-width="1.5" stroke-linejoin="round"/>
+        <path d="M6 10L8 12L12 8" stroke="#4f8fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div>
+      <div class="footer-name">GuardianAI</div>
+      <div class="footer-tagline">Prompt protection for the AI age</div>
+    </div>
+  </div>
+  <div class="footer-links">
+    <a href="#how" class="footer-link">How it works</a>
+    <a href="#detect" class="footer-link">Detection</a>
+    <a href="#popia" class="footer-link">POPIA</a>
+    <a href="#waitlist" class="footer-link">Waitlist</a>
+  </div>
+  <div class="footer-legal">
+    © 2026 GuardianAI · guardianai.co.za<br/>
+    <a href="privacy.html" style="color:var(--blue2);text-decoration:none;">Privacy Policy</a> &nbsp;·&nbsp;
+    <a href="terms.html" style="color:var(--blue2);text-decoration:none;">Terms of Service</a>
+  </div>
+</footer>
+
+<script>
+// ── WAITLIST HANDLER ──────────────────────────────────────────────────────────
+function handleWaitlist(e, id) {
+  e.preventDefault();
+  const form    = e.target;
+  const success = document.getElementById(id === 'hero' ? 'hero-success' : 'bottom-success');
+  const email   = form.querySelector('input').value;
+
+  // Store locally (replace with your email service endpoint)
+  const entries = JSON.parse(localStorage.getItem('guardian_waitlist') || '[]');
+  if (!entries.includes(email)) entries.push(email);
+  localStorage.setItem('guardian_waitlist', JSON.stringify(entries));
+
+  form.style.display = 'none';
+  success.style.display = 'flex';
+
+  // If both forms submitted, update both
+  if (id === 'hero') {
+    const bottomInput = document.querySelector('#bottom-form input');
+    if (bottomInput) bottomInput.value = email;
+  }
+}
+
+// ── SCROLL REVEAL ─────────────────────────────────────────────────────────────
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+      observer.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -60px 0px' });
+
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// ── SMOOTH NAV LINKS ──────────────────────────────────────────────────────────
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const target = document.querySelector(a.getAttribute('href'));
+    if (target) target.scrollIntoView({ behavior: 'smooth' });
+  });
+});
+</script>
+</body>
+</html>
