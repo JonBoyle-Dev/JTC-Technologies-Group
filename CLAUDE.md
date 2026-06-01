@@ -8,3 +8,8 @@ JTC-Technologies-Group/
 ├── Index (main page)
 └── README.md
 ```
+
+## TODO
+- [ ] 
+- [ ] 
+- [ ] 
