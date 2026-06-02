@@ -1,0 +1,13 @@
+/* JTC Technologies Group — Blue theme */
+:root {
+  --accent:           #2a6ef5;
+  --accent-2:         #4f8fff;
+  --accent-hover:     #1d5cd4;
+  --accent-bg:        rgba(42, 110, 245, 0.12);
+  --accent-dim:       rgba(42, 110, 245, 0.10);
+  --accent-glow:      rgba(42, 110, 245, 0.18);
+  --accent-border:    rgba(42, 110, 245, 0.25);
+  --accent-border-hi: rgba(42, 110, 245, 0.40);
+  --accent-shadow:    rgba(42, 110, 245, 0.20);
+  --accent-shadow-lg: rgba(42, 110, 245, 0.15);
+}
