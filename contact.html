@@ -3,7 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Contact — JTC Technologies Group</title>
+  <title>Contact JTC Technologies Group — Get in Touch</title>
+  <meta name="description" content="Get in touch with JTC Technologies Group — questions, bug reports, collaboration, or just to say hello. Based in Johannesburg, South Africa." />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="JTC Technologies Group" />
+  <meta property="og:title" content="Contact JTC Technologies Group — Get in Touch" />
+  <meta property="og:description" content="Get in touch with JTC Technologies Group — questions, bug reports, collaboration, or just to say hello. Based in Johannesburg, South Africa." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
@@ -126,7 +131,7 @@
       <li><a href="about.html">About</a></li>
       <li><a href="contact.html" class="active">Contact</a></li>
     </ul>
-    <button class="nav-toggle" id="navToggle"><span></span><span></span><span></span></button>
+    <button class="nav-toggle" id="navToggle" aria-label="Toggle menu"><span></span><span></span><span></span></button>
   </nav>
 
   <div class="page-header">
@@ -230,6 +235,7 @@
               <textarea id="message" placeholder="Tell me what's on your mind…"></textarea>
             </div>
             <button class="btn-submit" onclick="handleSubmit()">Send Message →</button>
+            <p class="form-error" id="formError" style="display:none;font-family:var(--mono);font-size:0.7rem;letter-spacing:0.08em;color:#ff6b6b;margin-top:0.75rem;"></p>
             <p class="form-note">// No data is stored on any server. This form uses mailto or your preferred contact method.</p>
           </div>
           <div class="form-success" id="formSuccess">
@@ -270,7 +276,7 @@
       </div>
     </div>
     <div class="footer-bottom">
-      <p>© 2025 <span>JTC Technologies Group</span>. All rights reserved. Built in <span>🇿🇦</span></p>
+      <p>© 2026 <span>JTC Technologies Group</span>. All rights reserved. Built in <span>🇿🇦</span></p>
       <p>Privacy-first · Local-only · POPIA aligned</p>
     </div>
   </footer>
@@ -280,16 +286,26 @@
     const links  = document.getElementById('navLinks');
     toggle.addEventListener('click', () => links.classList.toggle('open'));
 
+    function showError(msg) {
+      const el = document.getElementById('formError');
+      el.textContent = '// ' + msg;
+      el.style.display = 'block';
+    }
+
     function handleSubmit() {
-      const name    = document.getElementById('firstName').value;
-      const email   = document.getElementById('email').value;
+      const name    = document.getElementById('firstName').value.trim();
+      const email   = document.getElementById('email').value.trim();
       const subject = document.getElementById('subject').value;
-      const message = document.getElementById('message').value;
-      if (!name || !email || !subject || !message) {
-        alert('Please fill in all fields before sending.');
-        return;
-      }
-      // Build mailto link — replace with your actual email
+      const message = document.getElementById('message').value.trim();
+      const errEl   = document.getElementById('formError');
+      errEl.style.display = 'none';
+
+      if (!name)    { showError('Please enter your first name.'); return; }
+      if (!email)   { showError('Please enter your email address.'); return; }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showError('Please enter a valid email address.'); return; }
+      if (!subject) { showError('Please select a subject.'); return; }
+      if (!message) { showError('Please enter a message.'); return; }
+
       const to      = 'hello@jtctechnologies.co.za';
       const subLine = `[JTC Technologies] ${subject}`;
       const body    = `From: ${name} (${email})\n\n${message}`;

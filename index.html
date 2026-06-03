@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>JTC Technologies Group — AI Tools for the Modern Web</title>
   <meta name="description" content="JTC Technologies Group builds privacy-first AI tools and Chrome extensions. Explore Guardian AI, PromptForge, Dark Pattern Detector and more." />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="JTC Technologies Group" />
+  <meta property="og:title" content="JTC Technologies Group — AI Tools for the Modern Web" />
+  <meta property="og:description" content="JTC Technologies Group builds privacy-first AI tools and Chrome extensions. Explore Guardian AI, PromptForge, Dark Pattern Detector and more." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
@@ -337,7 +341,7 @@
       position: absolute;
       top: 0; left: 0; right: 0;
       height: 2px;
-      background: linear-gradient(90deg, var(--cyan), transparent);
+      background: linear-gradient(90deg, var(--c, var(--cyan)), transparent);
       opacity: 0;
       transition: opacity 0.3s;
     }
@@ -402,7 +406,7 @@
       font-weight: 700;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: var(--cyan);
+      color: var(--c, var(--cyan));
       margin-top: 0.5rem;
       transition: gap 0.2s;
     }
@@ -678,7 +682,7 @@
     <div class="products-grid">
 
       <!-- Guardian AI -->
-      <div class="product-card" onclick="window.open('https://jonboyle82.github.io/Guardian-AI/','_blank')">
+      <div class="product-card" style="--c:#2a6ef5" onclick="window.open('https://jonboyle82.github.io/Guardian-AI/','_blank')">
         <div class="card-header">
           <div class="card-icon">🔒</div>
           <span class="card-status status-beta">Beta</span>
@@ -699,7 +703,7 @@
       </div>
 
       <!-- PromptForge -->
-      <div class="product-card" onclick="window.open('https://jonboyle82.github.io/promptforge/','_blank')">
+      <div class="product-card" style="--c:#f59e0b" onclick="window.open('https://jonboyle82.github.io/promptforge/','_blank')">
         <div class="card-header">
           <div class="card-icon">⚡</div>
           <span class="card-status status-beta">Beta</span>
@@ -719,7 +723,7 @@
       </div>
 
       <!-- Dark Pattern Detector -->
-      <div class="product-card" onclick="window.open('https://jonboyle82.github.io/Dark-pattern-Detector/','_blank')">
+      <div class="product-card" style="--c:#6c63ff" onclick="window.open('https://jonboyle82.github.io/Dark-pattern-Detector/','_blank')">
         <div class="card-header">
           <div class="card-icon">🛡️</div>
           <span class="card-status status-beta">Beta</span>
