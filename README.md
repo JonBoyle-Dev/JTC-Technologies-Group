@@ -1,8 +1,8 @@
-# JTC Technologies Group — Site Plan & README
+# JTC Tech — Site Plan & README
 
 ## Overview
 
-This is the main group landing site for **JTC Technologies Group** — a portfolio of privacy-first AI tools and browser extensions. The site acts as the central hub linking all individual product sites.
+This is the main group landing site for **JTC Tech** — a portfolio of privacy-first AI tools and browser extensions. The site acts as the central hub linking all individual product sites.
 
 **Live URL (after GitHub Pages setup):** `https://jonboyle82.github.io/jtc-technologies/`  
 *(or a custom domain if you add one)*
@@ -179,4 +179,4 @@ For a proper form backend (no email client popup), options include:
 
 ---
 
-*JTC Technologies Group — Built in 🇿🇦*
+*JTC Tech — Built in 🇿🇦*
