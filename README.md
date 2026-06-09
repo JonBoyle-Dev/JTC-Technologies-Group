@@ -146,7 +146,7 @@ Add to the product links section and the dropdown:
 4. Site will be live at `https://jonboyle82.github.io/jtc-technologies/`
 
 ### Optional: Custom Domain
-- Add a `CNAME` file to the repo root containing your domain (e.g. `jtctechnologies.co.za`)
+- Add a `CNAME` file to the repo root containing your domain (e.g. `jtctech.co.za`)
 - Point your DNS A records to GitHub Pages IPs or use a CNAME to `jonboyle82.github.io`
 
 ---
@@ -156,7 +156,7 @@ Add to the product links section and the dropdown:
 The contact form currently uses a `mailto:` link as the fallback (no backend required — works on GitHub Pages). Update the email address in `contact.html`:
 
 ```javascript
-const to = 'hello@jtctechnologies.co.za'; // ← Change this
+const to = 'hello@jtctech.co.za'; // ← Change this
 ```
 
 For a proper form backend (no email client popup), options include:

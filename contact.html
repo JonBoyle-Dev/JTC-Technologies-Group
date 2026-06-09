@@ -308,7 +308,7 @@
       if (!subject) { showError('Please select a subject.'); return; }
       if (!message) { showError('Please enter a message.'); return; }
 
-      const to      = 'hello@jtctechnologies.co.za';
+      const to      = 'hello@jtctech.co.za';
       const subLine = `[JTC Technologies] ${subject}`;
       const body    = `From: ${name} (${email})\n\n${message}`;
       window.location.href = `mailto:${to}?subject=${encodeURIComponent(subLine)}&body=${encodeURIComponent(body)}`;
