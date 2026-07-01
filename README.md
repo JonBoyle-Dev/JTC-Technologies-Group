@@ -4,8 +4,7 @@
 
 This is the main group landing site for **JTC Tech** — a portfolio of privacy-first AI tools and browser extensions. The site acts as the central hub linking all individual product sites.
 
-**Live URL (after GitHub Pages setup):** `https://jonboyle82.github.io/jtc-technologies/`  
-*(or a custom domain if you add one)*
+**Live URL:** `https://jtctech.co.za/`
 
 ---
 
@@ -38,9 +37,9 @@ jtc-technologies/
 
 | Product | URL | Status | Category |
 |---------|-----|--------|----------|
-| Guardian AI | https://jonboyle82.github.io/Guardian-AI/ | Beta | Privacy / Data Protection |
-| PromptForge | https://jonboyle82.github.io/promptforge/ | Coming Soon | Productivity / Prompt Engineering |
-| Dark Pattern Detector | https://jonboyle82.github.io/Dark-pattern-Detector/ | Live | Consumer Protection / AI |
+| Guardian AI | https://guardian.jtctech.co.za/ | Beta | Privacy / Data Protection |
+| PromptForge | https://promptforge.jtctech.co.za/ | Coming Soon | Productivity / Prompt Engineering |
+| Dark Pattern Detector | https://darkpattern.jtctech.co.za/ | Live | Consumer Protection / AI |
 
 ---
 
@@ -143,11 +142,11 @@ Add to the product links section and the dropdown:
 1. Create a new repo: `jtc-technologies` (or `jtc-group`, etc.)
 2. Push all four HTML files and this README to `main`
 3. Go to **Settings → Pages → Source:** `main` branch, `/ (root)` folder
-4. Site will be live at `https://jonboyle82.github.io/jtc-technologies/`
+4. Site will be live at `https://jonboyle-dev.github.io/jtc-technologies/`
 
 ### Optional: Custom Domain
 - Add a `CNAME` file to the repo root containing your domain (e.g. `jtctech.co.za`)
-- Point your DNS A records to GitHub Pages IPs or use a CNAME to `jonboyle82.github.io`
+- Point your DNS A records to GitHub Pages IPs or use a CNAME to `jonboyle-dev.github.io`
 
 ---
 
